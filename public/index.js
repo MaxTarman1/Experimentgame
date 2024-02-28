@@ -12,9 +12,13 @@ const socket = io('ws://localhost:5000');
 
 let map = [[]];
 let players=[];
+let snowballs = [];
 const TILE_SIZE = 16;
+
+let myId = null;
 socket.on("connect", () => {
     console.log("connected");
+
 });
 
 socket.on('map', (loadedMap)=>{
@@ -23,8 +27,10 @@ socket.on('map', (loadedMap)=>{
 
 socket.on('players', (serverPLayers)=>{
     players = serverPLayers;
-})
-
+});
+socket.on('snowballs', (serverSnowballs) => {
+    snowballs = serverSnowballs;
+});
 const inputs = {
     'up':false,
     'down':false,
@@ -55,9 +61,20 @@ window.addEventListener('keyup',(e)=>{
     }
     socket.emit("inputs",inputs);
 });
-
+window.addEventListener('click', (e)=>{
+    const angle = Math.atan2(e.clientY - canvasEl.height/2,e.clientX -canvasEl.width/2);
+    socket.emit('snowball',angle);
+})
 function loop(){
-    canvas.clearRect(0,0,canvas.width,canvas.height);
+    canvas.clearRect(0,0,canvasEl.width,canvasEl.height);
+    const myPlayer = players.find((player) => player.id=== socket.id);
+    let cameraX =0;
+    let cameraY =0;
+    if(myPlayer){
+        cameraX = parseInt(myPlayer.x - canvasEl.width/2);
+        cameraY= parseInt(myPlayer.y - canvasEl.height/2);     
+    }
+    
     const TILES_IN_ROW = 16;
     for (let row = 0; row< map.length; row ++){
         for (let col = 0; col< map[0].length; col++){
@@ -69,8 +86,8 @@ function loop(){
                 imageRow*TILE_SIZE,
                 TILE_SIZE,
                 TILE_SIZE,
-                col*TILE_SIZE,
-                row*TILE_SIZE,
+                col*TILE_SIZE-cameraX,
+                row*TILE_SIZE-cameraY,
                 TILE_SIZE,
                 TILE_SIZE);
         }
@@ -78,9 +95,14 @@ function loop(){
     }
     
     for (const player of players){
-        canvas.drawImage(santaImage,player.x,player.y);
+        canvas.drawImage(santaImage,player.x-cameraX,player.y-cameraY);
     }
-    
+    for (const snowball of snowballs){
+        canvas.fillStyle = 'white'
+        canvas.beginPath();
+        canvas.arc(snowball.x-cameraX,snowball.y - cameraY, 4,0,2*Math.PI);
+        canvas.fill();
+    }
     window.requestAnimationFrame(loop);
 }
 window.requestAnimationFrame(loop);
