@@ -9,6 +9,7 @@ const loadMap=require('./mapLoader');
 const SPEED = 5;
 const SNOWBALL_SPEED= 10;
 const TICK_RATE = 30;
+const PLAYER_SIZE = 16;
 let snowballs = [];
 let players = [];
 const inputsMap ={};
@@ -32,8 +33,8 @@ function tick(delta){
         snowball.timeLeft -= delta;
         for (const player of players) {
             if (player.id === snowball.playerId) continue;
-            const distance = Math.sqrt((player.x+8-snowball.x)**2+(player.y+8-snowball.y)**2);
-            if(distance<=8){
+            const distance = Math.sqrt((player.x+PLAYER_SIZE/2-snowball.x)**2+(player.y+PLAYER_SIZE/2-snowball.y)**2);
+            if(distance<=PLAYER_SIZE/2){
                 player.x=0;
                 player.y=0;
                 snowball.timeLeft=-1;
@@ -48,7 +49,7 @@ function tick(delta){
 }
 async function main(){
     
-    const map2D = await loadMap();
+    const {ground2D,decals2D} = await loadMap();
     io.on("connect", (socket) => {
         console.log("user connected",socket.id);
         inputsMap[socket.id] = {
@@ -59,10 +60,11 @@ async function main(){
         };
         players.push({
             id: socket.id,
-            x:0,
-            y:0
+            x:800,
+            y:800
         });
-        socket.emit('map', map2D)
+        socket.emit('map', {ground : ground2D,
+        decals: decals2D})
         socket.on('inputs',(inputs)=>{
             inputsMap[socket.id]=inputs;
         });
@@ -72,7 +74,7 @@ async function main(){
                 angle,
                 x: player.x,
                 y:player.y,
-                timeLeft :1000,
+                timeLeft :1700,
                 playerId: socket.id
             });
         });
